@@ -1,0 +1,8 @@
+{
+  "name": "auroraapi",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "openai": "^4.53.0"
+  }
+}
