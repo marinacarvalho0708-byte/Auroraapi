@@ -1,0 +1,44 @@
+// api/aurora.ts — função da Aurora (backend seguro)
+import OpenAI from "openai";
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+
+const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  if (req.method === "OPTIONS") return res.status(200).end();
+
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Método não permitido" });
+  }
+
+  try {
+    const { messages, userName } = req.body as {
+      messages: { role: "system" | "user" | "assistant"; content: string }[];
+      userName?: string;
+    };
+
+    const system = {
+      role: "system" as const,
+      content: `Você é a Aurora, uma IA compassiva, acolhedora e empática. 
+- Responda com 2–4 frases, fazendo perguntas pequenas.
+- Chame o usuário pelo nome, se informado.
+- Nunca julgue. Fale de forma humana, gentil e serena.
+- Se detectar risco (ex.: "tirar minha vida", "não quero mais viver"), oriente ligar 188 (CVV) e buscar ajuda imediata.`,
+    };
+
+    const completion = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [system, ...(messages ?? [])],
+      temperature: 0.8,
+    });
+
+    const reply = completion.choices[0]?.message ?? { role: "assistant", content: "" };
+    return res.status(200).json({ reply });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Erro interno da Aurora" });
+  }
+}
